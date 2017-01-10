@@ -18,6 +18,7 @@ nv.models.pie = function() {
         , labelsOutside = false
         , labelType = "key"
         , labelThreshold = .02 //if slice percentage is under this, don't show label
+        , sameLabelColor = false
         , donut = false
         , title = false
         , growOnHover = true
@@ -252,7 +253,13 @@ nv.models.pie = function() {
 
                     group.append('text')
                         .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
-                        .style('fill', '#000')
+                        .style('fill', function(d,i) {
+                            if (labelsOutside && sameLabelColor) {
+                                return color(d.data, i);
+                            } else {
+                                return '#000';
+                            }
+                        })
                 });
 
                 var labelLocationHash = {};
@@ -405,6 +412,7 @@ nv.models.pie = function() {
         donutRatio:   {get: function(){return donutRatio;}, set: function(_){donutRatio=_;}},
         labelsOutside: {get: function(){return labelsOutside;}, set: function(_){labelsOutside=_;}},
         labelSunbeamLayout: {get: function(){return labelSunbeamLayout;}, set: function(_){labelSunbeamLayout=_;}},
+        sameLabelColor: {get: function(){return sameLabelColor;}, set: function(_){sameLabelColor=_;}},
         donut:              {get: function(){return donut;}, set: function(_){donut=_;}},
         growOnHover:        {get: function(){return growOnHover;}, set: function(_){growOnHover=_;}},
 
