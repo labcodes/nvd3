@@ -287,12 +287,14 @@ nv.models.pie = function() {
                         if (labelsOutside) { //Prevent collision between label and slices
                             var pieBox = wrap.select('.nv-pie')[0][0].getBoundingClientRect();
                             var labelBox = pieLabels[0][i].getBoundingClientRect()
-                            if (!intersects(pieBox, labelBox)) {
-                                d.outerRadius = radius + 10; // Set Outer Coordinate
-                                d.innerRadius = radius + 15; // Set Inner Coordinate
-                            } else {
+
+                            if (intersects(pieBox, labelBox) || d3.select(pieLabels[0][i]).attr('colided')) {
+                                d3.select(pieLabels[0][i]).attr('colided', true);
                                 d.outerRadius = radius + 45; // Set Outer Coordinate
                                 d.innerRadius = radius + 50; // Set Inner Coordinate
+                            } else {
+                                d.outerRadius = radius + 10; // Set Outer Coordinate
+                                d.innerRadius = radius + 15; // Set Inner Coordinate
                             }
                         } else {
                             d.outerRadius = radius + 10; // Set Outer Coordinate
