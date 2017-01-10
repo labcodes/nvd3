@@ -286,8 +286,20 @@ nv.models.pie = function() {
                         }
                         return 'translate(' + labelsArc[i].centroid(d) + ') rotate(' + rotateAngle + ')';
                     } else {
-                        d.outerRadius = radius + 10; // Set Outer Coordinate
-                        d.innerRadius = radius + 15; // Set Inner Coordinate
+                        if (labelsOutside) { //Prevent collision between label and slices
+                            var pieBox = wrap.select('.nv-pie')[0][0].getBoundingClientRect();
+                            var labelBox = pieLabels[0][i].getBoundingClientRect()
+                            if (!intersects(pieBox, labelBox)) {
+                                d.outerRadius = radius + 10; // Set Outer Coordinate
+                                d.innerRadius = radius + 15; // Set Inner Coordinate
+                            } else {
+                                d.outerRadius = radius + 45; // Set Outer Coordinate
+                                d.innerRadius = radius + 50; // Set Inner Coordinate
+                            }
+                        } else {
+                            d.outerRadius = radius + 10; // Set Outer Coordinate
+                            d.innerRadius = radius + 15; // Set Inner Coordinate
+                        }
 
                         /*
                         Overlapping pie labels are not good. What this attempts to do is, prevent overlapping.
@@ -357,6 +369,18 @@ nv.models.pie = function() {
                 return function (t) {
                     return arcs[idx](i(t));
                 };
+            }
+
+            function intersects (box1, box2) {
+                return (intersectsVertical(box1, box2) && intersectsHorizontal(box1, box2)) || (intersectsVertical(box2, box1) && intersectsHorizontal(box2, box1));
+            }
+
+            function intersectsVertical(box1, box2) {
+                return (box2.bottom < box1.bottom && box2.bottom > box1.top) || (box2.top < box1.bottom && box2.top > box1.top);
+            }
+
+            function intersectsHorizontal(box1, box2) {
+                return (box2.left < box1.right && box2.left > box1.left) || (box2.right < box1.right && box2.right > box1.left);
             }
         });
 
