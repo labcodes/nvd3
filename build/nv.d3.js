@@ -1,4 +1,4 @@
-/* nvd3 version 1.8.5-dev (https://github.com/novus/nvd3) 2016-12-08 */
+/* nvd3 version 1.8.5-dev (https://github.com/novus/nvd3) 2017-01-10 */
 (function(){
 
 // set up main nv object
@@ -6886,8 +6886,10 @@ nv.models.lineChart = function() {
                     .call(legend);
 
                 if (legendPosition === 'bottom') {
-                    wrap.select('.nv-legendWrap')
-                        .attr('transform', 'translate(0,' + availableHeight +')');
+                     margin.bottom = xAxis.height() + legend.height();
+                     availableHeight = nv.utils.availableHeight(height, container, margin);
+                     g.select('.nv-legendWrap')
+                         .attr('transform', 'translate(0,' + (availableHeight + xAxis.height())  +')');
                 } else if (legendPosition === 'top') {
                     if (!marginTop && legend.height() !== margin.top) {
                         margin.top = legend.height();
@@ -11285,6 +11287,7 @@ nv.models.pie = function() {
         , labelsOutside = false
         , labelType = "key"
         , labelThreshold = .02 //if slice percentage is under this, don't show label
+        , sameLabelColor = false
         , donut = false
         , title = false
         , growOnHover = true
@@ -11528,7 +11531,13 @@ nv.models.pie = function() {
 
                     group.append('text')
                         .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
-                        .style('fill', '#000')
+                        .style('fill', function(d,i) {
+                            if (labelsOutside && sameLabelColor) {
+                                return color(d.data, i);
+                            } else {
+                                return '#000';
+                            }
+                        })
                 });
 
                 var labelLocationHash = {};
@@ -11553,8 +11562,20 @@ nv.models.pie = function() {
                         }
                         return 'translate(' + labelsArc[i].centroid(d) + ') rotate(' + rotateAngle + ')';
                     } else {
-                        d.outerRadius = radius + 10; // Set Outer Coordinate
-                        d.innerRadius = radius + 15; // Set Inner Coordinate
+                        if (labelsOutside) { //Prevent collision between label and slices
+                            var pieBox = wrap.select('.nv-pie')[0][0].getBoundingClientRect();
+                            var labelBox = pieLabels[0][i].getBoundingClientRect()
+                            if (!intersects(pieBox, labelBox)) {
+                                d.outerRadius = radius + 10; // Set Outer Coordinate
+                                d.innerRadius = radius + 15; // Set Inner Coordinate
+                            } else {
+                                d.outerRadius = radius + 45; // Set Outer Coordinate
+                                d.innerRadius = radius + 50; // Set Inner Coordinate
+                            }
+                        } else {
+                            d.outerRadius = radius + 10; // Set Outer Coordinate
+                            d.innerRadius = radius + 15; // Set Inner Coordinate
+                        }
 
                         /*
                         Overlapping pie labels are not good. What this attempts to do is, prevent overlapping.
@@ -11625,6 +11646,18 @@ nv.models.pie = function() {
                     return arcs[idx](i(t));
                 };
             }
+
+            function intersects (box1, box2) {
+                return (intersectsVertical(box1, box2) && intersectsHorizontal(box1, box2)) || (intersectsVertical(box2, box1) && intersectsHorizontal(box2, box1));
+            }
+
+            function intersectsVertical(box1, box2) {
+                return (box2.bottom < box1.bottom && box2.bottom > box1.top) || (box2.top < box1.bottom && box2.top > box1.top);
+            }
+
+            function intersectsHorizontal(box1, box2) {
+                return (box2.left < box1.right && box2.left > box1.left) || (box2.right < box1.right && box2.right > box1.left);
+            }
         });
 
         renderWatch.renderEnd('pie immediate');
@@ -11657,6 +11690,7 @@ nv.models.pie = function() {
         donutRatio:   {get: function(){return donutRatio;}, set: function(_){donutRatio=_;}},
         labelsOutside: {get: function(){return labelsOutside;}, set: function(_){labelsOutside=_;}},
         labelSunbeamLayout: {get: function(){return labelSunbeamLayout;}, set: function(_){labelSunbeamLayout=_;}},
+        sameLabelColor: {get: function(){return sameLabelColor;}, set: function(_){sameLabelColor=_;}},
         donut:              {get: function(){return donut;}, set: function(_){donut=_;}},
         growOnHover:        {get: function(){return growOnHover;}, set: function(_){growOnHover=_;}},
 
@@ -12743,6 +12777,10 @@ nv.models.scatter = function() {
 
                 // inject series and point index for reference into voronoi
                 if (useVoronoi === true) {
+                    
+                    // nuke all voronoi paths on reload and recreate them
+                    wrap.select('.nv-point-paths').selectAll('path').remove();
+                    
                     var vertices = d3.merge(data.map(function(group, groupIndex) {
                             return group.values
                                 .map(function(point, pointIndex) {
@@ -12790,8 +12828,6 @@ nv.models.scatter = function() {
                         }
                     });
 
-                    // nuke all voronoi paths on reload and recreate them
-                    wrap.select('.nv-point-paths').selectAll('path').remove();
                     var pointPaths = wrap.select('.nv-point-paths').selectAll('path').data(voronoi);
                     var vPointPaths = pointPaths
                         .enter().append("svg:path")
