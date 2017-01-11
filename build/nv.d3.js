@@ -1,4 +1,4 @@
-/* nvd3 version 1.8.2 (https://github.com/novus/nvd3) 2016-01-24 */
+/* nvd3 version 1.8.2 (https://github.com/novus/nvd3) 2017-01-12 */
 (function(){
 
 // set up main nv object
@@ -1555,6 +1555,7 @@ nv.utils.arrayEquals = function (array1, array2) {
         , axisLabelText = null
         , showMaxMin = true //TODO: showMaxMin should be disabled on all ordinal scaled axes
         , rotateLabels = 0
+        , rotateLabelsSpacing = true
         , rotateYLabel = true
         , staggerLabels = false
         , isOrdinal = false
@@ -1664,7 +1665,14 @@ nv.utils.arrayEquals = function (array1, array2) {
                             textHeight = box.height;
                             if(width > maxTextWidth) maxTextWidth = width;
                         });
-                        rotateLabelsRule = 'rotate(' + rotateLabels + ' 0,' + (textHeight/2 + axis.tickPadding()) + ')';
+
+                        var spacing = (textHeight/2 + axis.tickPadding());
+
+                        if (!rotateLabelsSpacing) {
+                            spacing = 0;
+                        }
+                        
+                        rotateLabelsRule = 'rotate(' + rotateLabels + ' 0,' + spacing + ')';
                         //Convert to radians before calculating sin. Add 30 to margin for healthy padding.
                         var sin = Math.abs(Math.sin(rotateLabels*Math.PI/180));
                         xLabelMargin = (sin ? sin*maxTextWidth : maxTextWidth)+30;
@@ -1890,6 +1898,7 @@ nv.utils.arrayEquals = function (array1, array2) {
         axisLabelDistance: {get: function(){return axisLabelDistance;}, set: function(_){axisLabelDistance=_;}},
         staggerLabels:     {get: function(){return staggerLabels;}, set: function(_){staggerLabels=_;}},
         rotateLabels:      {get: function(){return rotateLabels;}, set: function(_){rotateLabels=_;}},
+        rotateLabelsSpacing:      {get: function(){return rotateLabelsSpacing;}, set: function(_){rotateLabelsSpacing=_;}},
         rotateYLabel:      {get: function(){return rotateYLabel;}, set: function(_){rotateYLabel=_;}},
         showMaxMin:        {get: function(){return showMaxMin;}, set: function(_){showMaxMin=_;}},
         axisLabel:         {get: function(){return axisLabelText;}, set: function(_){axisLabelText=_;}},
@@ -10607,6 +10616,7 @@ nv.models.parallelCoordinatesChart = function () {
         , labelsOutside = false
         , labelType = "key"
         , labelThreshold = .02 //if slice percentage is under this, don't show label
+        , sameLabelColor = false
         , donut = false
         , title = false
         , growOnHover = true
@@ -10841,7 +10851,13 @@ nv.models.parallelCoordinatesChart = function () {
 
                     group.append('text')
                         .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
-                        .style('fill', '#000')
+                        .style('fill', function(d,i) {
+                            if (labelsOutside && sameLabelColor) {
+                                return color(d.data, i);
+                            } else {
+                                return '#000';
+                            }
+                        })
                 });
 
                 var labelLocationHash = {};
@@ -10866,8 +10882,22 @@ nv.models.parallelCoordinatesChart = function () {
                         }
                         return 'translate(' + labelsArc[i].centroid(d) + ') rotate(' + rotateAngle + ')';
                     } else {
-                        d.outerRadius = radius + 10; // Set Outer Coordinate
-                        d.innerRadius = radius + 15; // Set Inner Coordinate
+                        if (labelsOutside) { //Prevent collision between label and slices
+                            var pieBox = wrap.select('.nv-pie')[0][0].getBoundingClientRect();
+                            var labelBox = pieLabels[0][i].getBoundingClientRect()
+
+                            if (intersects(pieBox, labelBox) || d3.select(pieLabels[0][i]).attr('colided')) {
+                                d3.select(pieLabels[0][i]).attr('colided', true);
+                                d.outerRadius = radius + 45; // Set Outer Coordinate
+                                d.innerRadius = radius + 50; // Set Inner Coordinate
+                            } else {
+                                d.outerRadius = radius + 10; // Set Outer Coordinate
+                                d.innerRadius = radius + 15; // Set Inner Coordinate
+                            }
+                        } else {
+                            d.outerRadius = radius + 10; // Set Outer Coordinate
+                            d.innerRadius = radius + 15; // Set Inner Coordinate
+                        }
 
                         /*
                         Overlapping pie labels are not good. What this attempts to do is, prevent overlapping.
@@ -10938,6 +10968,18 @@ nv.models.parallelCoordinatesChart = function () {
                     return arcs[idx](i(t));
                 };
             }
+
+            function intersects (box1, box2) {
+                return (intersectsVertical(box1, box2) && intersectsHorizontal(box1, box2)) || (intersectsVertical(box2, box1) && intersectsHorizontal(box2, box1));
+            }
+
+            function intersectsVertical(box1, box2) {
+                return (box2.bottom < box1.bottom && box2.bottom > box1.top) || (box2.top < box1.bottom && box2.top > box1.top);
+            }
+
+            function intersectsHorizontal(box1, box2) {
+                return (box2.left < box1.right && box2.left > box1.left) || (box2.right < box1.right && box2.right > box1.left);
+            }
         });
 
         renderWatch.renderEnd('pie immediate');
@@ -10970,6 +11012,7 @@ nv.models.parallelCoordinatesChart = function () {
         donutRatio:   {get: function(){return donutRatio;}, set: function(_){donutRatio=_;}},
         labelsOutside: {get: function(){return labelsOutside;}, set: function(_){labelsOutside=_;}},
         labelSunbeamLayout: {get: function(){return labelSunbeamLayout;}, set: function(_){labelSunbeamLayout=_;}},
+        sameLabelColor: {get: function(){return sameLabelColor;}, set: function(_){sameLabelColor=_;}},
         donut:              {get: function(){return donut;}, set: function(_){donut=_;}},
         growOnHover:        {get: function(){return growOnHover;}, set: function(_){growOnHover=_;}},
 
