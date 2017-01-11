@@ -14,6 +14,7 @@ nv.models.axis = function() {
         , axisLabelText = null
         , showMaxMin = true //TODO: showMaxMin should be disabled on all ordinal scaled axes
         , rotateLabels = 0
+        , rotateLabelsSpacing = true
         , rotateYLabel = true
         , staggerLabels = false
         , isOrdinal = false
@@ -131,7 +132,14 @@ nv.models.axis = function() {
                             textHeight = box.height;
                             if(width > maxTextWidth) maxTextWidth = width;
                         });
-                        rotateLabelsRule = 'rotate(' + rotateLabels + ' 0,' + (textHeight/2 + axis.tickPadding()) + ')';
+
+                        var spacing = (textHeight/2 + axis.tickPadding());
+
+                        if (!rotateLabelsSpacing) {
+                            spacing = 0;
+                        }
+                        
+                        rotateLabelsRule = 'rotate(' + rotateLabels + ' 0,' + spacing + ')';
                         //Convert to radians before calculating sin. Add 30 to margin for healthy padding.
                         var sin = Math.abs(Math.sin(rotateLabels*Math.PI/180));
                         xLabelMargin = (sin ? sin*maxTextWidth : maxTextWidth)+30;
@@ -357,6 +365,7 @@ nv.models.axis = function() {
         axisLabelDistance: {get: function(){return axisLabelDistance;}, set: function(_){axisLabelDistance=_;}},
         staggerLabels:     {get: function(){return staggerLabels;}, set: function(_){staggerLabels=_;}},
         rotateLabels:      {get: function(){return rotateLabels;}, set: function(_){rotateLabels=_;}},
+        rotateLabelsSpacing:      {get: function(){return rotateLabelsSpacing;}, set: function(_){rotateLabelsSpacing=_;}},
         rotateYLabel:      {get: function(){return rotateYLabel;}, set: function(_){rotateYLabel=_;}},
         showMaxMin:        {get: function(){return showMaxMin;}, set: function(_){showMaxMin=_;}},
         axisLabel:         {get: function(){return axisLabelText;}, set: function(_){axisLabelText=_;}},
